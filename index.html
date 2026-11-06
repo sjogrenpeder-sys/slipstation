@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F1E2E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<title>Slipstation</title>
+<style>
+:root{
+  --navy:#0F1E2E; --navy2:#1B2F44; --ink:#13202D; --muted:#5A6977; --line:#D6DEE6;
+  --bg:#EEF2F6; --card:#FFFFFF; --ice:#2F80ED; --ice-soft:#E3EEFC;
+  --ok:#1E9E5A; --ok-soft:#E1F5EA; --warn:#C97A00; --warn-soft:#FFF2DC; --bad:#C8372D;
+  --cond:"Roboto Condensed","sans-serif-condensed","Arial Narrow",system-ui,sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;-webkit-tap-highlight-color:transparent;display:flex;flex-direction:column}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px}
+input,select,textarea{font:inherit}
+
+/* Top bar */
+.top{background:var(--navy);color:#fff;display:flex;align-items:center;gap:20px;padding:10px 20px;padding-top:max(10px,env(safe-area-inset-top));flex-wrap:wrap}
+.brand{font-family:var(--cond);font-weight:700;font-size:24px;letter-spacing:.06em;display:flex;align-items:center;gap:10px}
+.brand small{font-family:var(--body);font-weight:400;font-size:14px;letter-spacing:0;color:#9FB2C6}
+nav{display:flex;gap:4px;flex:1;flex-wrap:wrap}
+nav button{background:transparent;color:#C7D3DF;padding:12px 18px;font-weight:600;font-size:17px}
+nav button.active{background:var(--navy2);color:#fff}
+.nfc{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--navy2);color:#fff;font-size:15px;font-weight:600}
+.dot{width:11px;height:11px;border-radius:50%;background:#7C8B99;flex-shrink:0}
+.nfc.on .dot{background:#4ADE80;box-shadow:0 0 0 4px rgba(74,222,128,.2)}
+.nfc.off .dot{background:#FBBF24}
+
+main{flex:1;overflow:auto;padding:20px;padding-bottom:max(20px,env(safe-area-inset-bottom))}
+.wrap{max-width:1400px;margin:0 auto}
+
+/* Headings */
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+h1{font-family:var(--cond);font-size:42px;line-height:1;margin:0;font-weight:700}
+.sub{color:var(--muted);margin-top:6px;font-size:16px}
+.tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+.seg{display:flex;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px}
+.seg button{background:transparent;padding:10px 16px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--navy);color:#fff}
+
+.btn{background:#fff;border:1px solid var(--line);padding:12px 18px;font-weight:600;color:var(--ink)}
+.btn.primary{background:var(--ice);border-color:var(--ice);color:#fff}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.danger{background:#fff;border-color:#F0C4C0;color:var(--bad)}
+.btn.big{padding:16px 24px;font-size:19px}
+.btn:active{transform:translateY(1px)}
+
+/* Queue */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.qrow{display:grid;grid-template-columns:64px minmax(0,1fr) 120px 150px 170px;gap:14px;align-items:center;padding:14px 18px;border-top:1px solid var(--line)}
+.qrow:first-child{border-top:0}
+.qhead{background:#F6F8FA;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:10px 18px}
+.qrow.item{cursor:pointer}
+.qrow.item:active{background:#F6F9FC}
+.nr{font-family:var(--cond);font-weight:700;font-size:26px;background:var(--ice-soft);color:var(--navy);border-radius:10px;text-align:center;padding:6px 0}
+.who b{display:block;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who span{color:var(--muted);font-size:15px}
+.big-val{font-family:var(--cond);font-weight:700;font-size:26px}
+.big-val small{font-family:var(--body);font-size:14px;color:var(--muted);font-weight:400;margin-left:2px}
+.group-h{background:var(--navy);color:#fff;font-family:var(--cond);font-weight:700;font-size:22px;padding:8px 18px;display:flex;justify-content:space-between;align-items:center}
+.group-h span{font-family:var(--body);font-size:14px;font-weight:400;color:#C7D3DF}
+.flash{animation:flash 1.4s ease-out}
+@keyframes flash{0%{background:#FFF4C2}100%{background:transparent}}
+
+.empty{padding:56px 24px;text-align:center;color:var(--muted)}
+.empty b{display:block;font-size:22px;color:var(--ink);margin-bottom:8px}
+.empty svg{color:var(--ice);margin-bottom:12px}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px}
+.stat .l{color:var(--muted);font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.stat .v{font-family:var(--cond);font-weight:700;font-size:40px;line-height:1.1}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:15px}
+.chip b{font-family:var(--cond);font-size:17px}
+
+.hrow{display:grid;grid-template-columns:150px minmax(0,1fr) 110px 140px;gap:14px;padding:12px 18px;border-top:1px solid var(--line);align-items:center}
+.hrow:first-child{border-top:0}
+.hrow .t{color:var(--muted);font-size:15px}
+
+.search{flex:1;min-width:220px;max-width:420px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:#fff}
+
+/* Settings */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
+.box h2{font-family:var(--cond);font-size:26px;margin:0 0 6px}
+.box p{color:var(--muted);margin:0 0 14px;line-height:1.45}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* Modal */
+.modal{position:fixed;inset:0;background:rgba(10,20,30,.55);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
+.modal.hidden{display:none}
+.sheet{background:#fff;border-radius:20px;width:min(860px,100%);max-height:calc(100vh - 40px);overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.sheet-h{padding:22px 26px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.sheet-h h2{font-family:var(--cond);font-size:36px;margin:0;line-height:1.05}
+.sheet-b{padding:20px 26px}
+.sheet-f{padding:16px 26px 22px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.x{background:#F1F4F7;width:48px;height:48px;font-size:24px;line-height:1;color:var(--muted);flex-shrink:0}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.tile{background:var(--ice-soft);border-radius:16px;padding:16px 20px}
+.tile .l{font-size:14px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.tile .v{font-family:var(--cond);font-weight:700;font-size:56px;line-height:1.05;color:var(--navy)}
+.tile .v small{font-size:24px}
+.meta{display:flex;gap:18px;flex-wrap:wrap;color:var(--muted);margin-bottom:14px}
+.meta b{color:var(--ink)}
+.note{background:var(--warn-soft);border-radius:12px;padding:12px 16px;margin-bottom:16px}
+.hist{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.hist div{padding:10px 14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
+.hist div:first-child{border-top:0}
+.tag{display:inline-block;font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--ok-soft);color:var(--ok)}
+.tag.q{background:var(--warn-soft);color:var(--warn)}
+
+form .f{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+label{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:15px;color:var(--muted)}
+label.full{grid-column:1/-1}
+label input,label select,label textarea{padding:13px 14px;border:1px solid #C3CDD7;border-radius:10px;font-size:18px;color:var(--ink);background:#fff}
+label input:focus,label textarea:focus,label select:focus{outline:2px solid var(--ice);border-color:var(--ice)}
+.check{flex-direction:row;align-items:center;gap:10px;color:var(--ink);font-weight:500}
+.check input{width:24px;height:24px}
+.uid{font-family:ui-monospace,monospace;font-size:14px;color:var(--muted)}
+.pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.pick button{background:#F6F8FA;border:1px solid var(--line);text-align:left;padding:12px 14px}
+.pick button b{display:block}
+.pick button span{color:var(--muted);font-size:14px}
+
+.write-box{text-align:center;padding:30px 10px}
+.pulse{width:110px;height:110px;margin:0 auto 18px;border-radius:50%;background:var(--ice-soft);display:flex;align-items:center;justify-content:center;color:var(--ice);animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,128,237,.45)}100%{box-shadow:0 0 0 28px rgba(47,128,237,0)}}
+
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(150%);background:var(--navy);color:#fff;padding:16px 24px;border-radius:14px;font-weight:600;font-size:18px;box-shadow:0 10px 30px rgba(0,0,0,.25);transition:transform .25s;z-index:80;max-width:calc(100% - 40px)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--bad)}
+
+@media (max-width:900px){
+  .qrow{grid-template-columns:52px minmax(0,1fr) 90px 120px}
+  .qrow .act,.qhead .act{display:none}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .hrow{grid-template-columns:110px minmax(0,1fr) 80px}
+  .hrow .p{display:none}
+  form .f{grid-template-columns:1fr}
+  .tile .v{font-size:44px}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">SLIPSTATION <small id="stationName"></small></div>
+  <nav id="nav">
+    <button data-v="queue" class="active">Slipkö</button>
+    <button data-v="skates">Skridskor</button>
+    <button data-v="history">Historik</button>
+    <button data-v="settings">Inställningar</button>
+  </nav>
+  <button class="nfc" id="nfcBtn"><span class="dot"></span><span id="nfcTxt">NFC</span></button>
+</header>
+<main id="main"><div class="wrap" id="view"></div></main>
+<div class="modal hidden" id="modal"><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+const APP_VERSION = '0.1.0';
+const STORE_KEY = 'slipstation.v1';
+const TAG_MIME = 'application/x-nsk';
+const HOLLOWS = ['6','8','10','11','12','13','14','15','16','17','19','22','25'];
+const PROFILES = ['Fabrik','Standard','Quad','Elite','XS','Zuperior','Målvakt'];
+const BASE_GROUPS = ['Domare','Tränare','Allmänhet'];
+
+/* ---------- Data ---------- */
+function emptyDb(){ return {skates:{}, queue:[], sharpenings:[], settings:{station:'Sliprummet'}}; }
+function load(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){ const d = JSON.parse(raw); const e = emptyDb(); return {...e, ...d, settings:{...e.settings, ...(d.settings||{})}}; }
+  }catch(e){}
+  return emptyDb();
+}
+let db = load();
+function save(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
+  catch(e){ toast('Kunde inte spara: '+e.message, true); }
+}
+if(navigator.storage && navigator.storage.persist){ navigator.storage.persist().catch(()=>{}); }
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtTime = ts => new Date(ts).toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'});
+const fmtDate = ts => new Date(ts).toLocaleDateString('sv-SE',{day:'numeric',month:'short'});
+const fmtDT = ts => { const d=new Date(ts); return isToday(ts) ? 'Idag '+fmtTime(ts) : fmtDate(ts)+' '+fmtTime(ts); };
+function isToday(ts){ const a=new Date(ts), b=new Date(); return a.toDateString()===b.toDateString(); }
+function daysAgo(ts){ const d=Math.floor((startOfDay(Date.now())-startOfDay(ts))/864e5); return d<=0?'idag':d===1?'igår':d+' dagar sedan'; }
+function startOfDay(ts){ const d=new Date(ts); d.setHours(0,0,0,0); return d.getTime(); }
+function startOfWeek(){ const d=new Date(); d.setHours(0,0,0,0); const wd=(d.getDay()+6)%7; d.setDate(d.getDate()-wd); return d.getTime(); }
+function startOfMonth(){ const d=new Date(); d.setHours(0,0,0,0); d.setDate(1); return d.getTime(); }
+function hollowLabel(h){ return h ? esc(h)+'<small>mm</small>' : '<small>–</small>'; }
+function lastSharp(uid){ let t=0; for(const s of db.sharpenings) if(s.uid===uid && s.ts>t) t=s.ts; return t; }
+function inQueue(uid){ return db.queue.some(q=>q.uid===uid); }
+function groups(){ const g=new Set(); Object.values(db.skates).forEach(s=>s.team&&g.add(s.team)); BASE_GROUPS.forEach(x=>g.add(x)); return [...g]; }
+
+/* ---------- Toast ---------- */
+let toastT;
+function toast(msg, err){
+  const t=$('#toast'); t.textContent=msg; t.className='toast show'+(err?' err':'');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.className='toast'+(err?' err':''), err?4500:2600);
+}
+
+/* ---------- Navigation ---------- */
+let view='queue', queueSort='time', skateFilter='', histRange='week', lastFlash=null;
+$('#nav').addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return; view=b.dataset.v; render(); });
+function render(){
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active', b.dataset.v===view));
+  $('#stationName').textContent = db.settings.station || '';
+  ({queue:renderQueue, skates:renderSkates, history:renderHistory, settings:renderSettings})[view]();
+}
+
+/* ---------- Queue ---------- */
+const NFC_ICON = '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 7c2 1.4 3 3 3 5s-1 3.6-3 5"/><path d="M12 4c3 2.2 4.5 5 4.5 8s-1.5 5.8-4.5 8"/><circle cx="4.5" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>';
+
+function renderQueue(){
+  const items = db.queue.map(q=>({q, s:db.skates[q.uid]})).filter(x=>x.s);
+  const counts = {}; items.forEach(x=>{ const h=x.s.hollow||'?'; counts[h]=(counts[h]||0)+1; });
+  const summary = Object.keys(counts).sort((a,b)=>parseFloat(a)-parseFloat(b)).map(h=>`${counts[h]} × ${h==='?'?'okänd':h+' mm'}`).join(' · ');
+  let body='';
+  if(!items.length){
+    body = `<div class="empty">${NFC_ICON}<b>Kön är tom</b>Blippa skridskorna mot plattans framsida för att lägga dem i kön.<br>Blippa en skridsko som redan står i kön för att öppna dess kort.</div>`;
+  } else if(queueSort==='hollow'){
+    const byH={}; items.forEach(x=>{ const h=x.s.hollow||'?'; (byH[h]=byH[h]||[]).push(x); });
+    Object.keys(byH).sort((a,b)=>parseFloat(a)-parseFloat(b)).forEach(h=>{
+      const g=byH[h].sort((a,b)=>a.q.addedAt-b.q.addedAt);
+      body += `<div class="group-h">Skål ${h==='?'?'okänd':esc(h)+' mm'}<span>${g.length} par</span></div>` + g.map(qRow).join('');
+    });
+  } else {
+    body = items.sort((a,b)=>a.q.addedAt-b.q.addedAt).map(qRow).join('');
+  }
+  $('#view').innerHTML = `
+    <div class="head">
+      <div><h1>Slipkö</h1><div class="sub">${items.length} par i kön${summary?' · '+summary:''}</div></div>
+      <div class="tools">
+        <div class="seg"><button data-sort="time" class="${queueSort==='time'?'on':''}">Efter tid</button><button data-sort="hollow" class="${queueSort==='hollow'?'on':''}">Efter skål</button></div>
+        <button class="btn" id="simBtn">Testa utan tagg</button>
+      </div>
+    </div>
+    <div class="panel">${items.length?`<div class="qrow qhead"><div>Nr</div><div>Spelare</div><div>Skål</div><div>Profil</div><div class="act"></div></div>`:''}${body}</div>`;
+  document.querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>{ queueSort=b.dataset.sort; render(); });
+  $('#simBtn').onclick=openSimulate;
+  document.querySelectorAll('.qrow.item').forEach(r=>r.onclick=e=>{
+    if(e.target.closest('[data-done]')){ markSharpened(r.dataset.uid); return; }
+    openCard(r.dataset.uid);
+  });
+  if(lastFlash){ const el=document.querySelector(`.qrow.item[data-uid="${CSS.escape(lastFlash)}"]`); if(el){ el.classList.add('flash'); el.scrollIntoView({block:'nearest'}); } lastFlash=null; }
+}
+function qRow(x){
+  const s=x.s;
+  return `<div class="qrow item" data-uid="${esc(s.uid)}">
+    <div class="nr">${esc(s.nr||'–')}</div>
+    <div class="who"><b>${esc(s.name||'Okänd')}</b><span>${esc(s.team||'')} · i kön sedan ${fmtTime(x.q.addedAt)}</span></div>
+    <div class="big-val">${hollowLabel(s.hollow)}</div>
+    <div class="big-val" style="font-size:21px">${esc(s.profile||'–')}</div>
+    <div class="act"><button class="btn ok" data-done>Slipad ✓</button></div>
+  </div>`;
+}
+
+/* ---------- Actions ---------- */
+function addToQueue(uid){ if(!inQueue(uid)){ db.queue.push({uid, addedAt:Date.now()}); save(); } }
+function removeFromQueue(uid){ db.queue = db.queue.filter(q=>q.uid!==uid); save(); }
+function markSharpened(uid){
+  const s=db.skates[uid]; if(!s) return;
+  db.sharpenings.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), uid, ts:Date.now(), hollow:s.hollow||'', profile:s.profile||'', name:s.name||'', team:s.team||''});
+  db.queue = db.queue.filter(q=>q.uid!==uid);
+  save(); closeModal(); render();
+  toast(`${s.name||'Skridskan'} markerad som slipad`);
+}
+
+/* ---------- Skate card ---------- */
+function openCard(uid){
+  const s=db.skates[uid]; if(!s) return;
+  const hist=db.sharpenings.filter(h=>h.uid===uid).sort((a,b)=>b.ts-a.ts);
+  const last=hist[0]; const q=inQueue(uid);
+  showModal(`
+    <div class="sheet-h"><div>
+      <h2>${esc(s.name||'Okänd')} ${s.nr?'<span style="color:var(--muted)">#'+esc(s.nr)+'</span>':''}</h2>
+      <div class="sub">${esc(s.team||'Inget lag')} ${q?'<span class="tag q">I kön</span>':''}</div>
+    </div><button class="x" data-close aria-label="Stäng">×</button></div>
+    <div class="sheet-b">
+      <div class="tiles">
+        <div class="tile"><div class="l">Skål</div><div class="v">${s.hollow?esc(s.hollow)+'<small> mm</small>':'–'}</div></div>
+        <div class="tile"><div class="l">Profil</div><div class="v" style="font-size:44px">${esc(s.profile||'–')}</div></div>
+      </div>
+      <div class="meta"><div>Senast slipad: <b>${last?fmtDate(last.ts)+' ('+daysAgo(last.ts)+')':'Aldrig'}</b></div><div>Antal slipningar: <b>${hist.length}</b></div></div>
+      ${s.note?`<div class="note"><b>Anteckning:</b> ${esc(s.note)}</div>`:''}
+      ${hist.length?`<div class="hist">${hist.slice(0,8).map(h=>`<div><span>${fmtDT(h.ts)}</span><span>${esc(h.hollow?h.hollow+' mm':'–')} · ${esc(h.profile||'–')}</span></div>`).join('')}</div>`:''}
+      <div class="uid" style="margin-top:12px">Tagg-ID: ${esc(uid)}</div>
+    </div>
+    <div class="sheet-f">
+      <button class="btn" data-edit>Ändra</button>
+      ${q?'<button class="btn" data-unq>Ta bort ur kön</button>':'<button class="btn" data-q>Lägg i kön</button>'}
+      <button class="btn ok big" data-done>Markera som slipad</button>
+    </div>`);
+  const sh=$('#sheet');
+  sh.querySelector('[data-close]').onclick=closeModal;
+  sh.querySelector('[data-edit]').onclick=()=>openForm(uid);
+  sh.querySelector('[data-done]').onclick=()=>markSharpened(uid);
+  const qb=sh.querySelector('[data-q]'); if(qb) qb.onclick=()=>{ addToQueue(uid); closeModal(); render(); toast('Lagd i kön'); };
+  const ub=sh.querySelector('[data-unq]'); if(ub) ub.onclick=()=>{ removeFromQueue(uid); closeModal(); render(); toast('Borttagen ur kön'); };
+}
+
+/* ---------- Register / edit form ---------- */
+let formOpen=false;
+function openForm(uid, preset){
+  const s = db.skates[uid] || preset || {};
+  const isNew = !db.skates[uid];
+  formOpen=true;
+  showModal(`
+    <form id="frm">
+    <div class="sheet-h"><div><h2>${isNew?'Ny skridsko':'Ändra skridsko'}</h2><div class="uid">Tagg-ID: ${esc(uid)}</div></div><button type="button" class="x" data-close aria-label="Stäng">×</button></div>
+    <div class="sheet-b"><div class="f">
+      <label>Namn<input name="name" required maxlength="30" value="${esc(s.name)}" autocomplete="off"></label>
+      <label>Nummer<input name="nr" inputmode="numeric" maxlength="4" value="${esc(s.nr)}" autocomplete="off"></label>
+      <label>Lag / grupp<input name="team" list="dlTeam" maxlength="20" value="${esc(s.team)}" autocomplete="off"></label>
+      <label>Skål (mm)<input name="hollow" list="dlHollow" inputmode="decimal" maxlength="5" value="${esc(s.hollow)}" autocomplete="off"></label>
+      <label>Profil<input name="profile" list="dlProfile" maxlength="16" value="${esc(s.profile)}" autocomplete="off"></label>
+      <label class="full">Anteckning<textarea name="note" rows="2" maxlength="200">${esc(s.note)}</textarea></label>
+      ${isNew?`<label class="check full"><input type="checkbox" name="queue" checked> Lägg i slipkön direkt</label>`:''}
+      ${ndef?`<label class="check full"><input type="checkbox" name="write" ${isNew?'checked':''}> Skriv uppgifterna till taggen (håll skridskon mot plattan efter Spara)</label>`:''}
+    </div>
+    <datalist id="dlTeam">${groups().map(g=>`<option value="${esc(g)}">`).join('')}</datalist>
+    <datalist id="dlHollow">${HOLLOWS.map(h=>`<option value="${h}">`).join('')}</datalist>
+    <datalist id="dlProfile">${PROFILES.map(p=>`<option value="${esc(p)}">`).join('')}</datalist>
+    </div>
+    <div class="sheet-f">
+      ${isNew?'':'<button type="button" class="btn danger" data-del>Ta bort skridskan</button>'}
+      <button type="button" class="btn" data-close>Avbryt</button>
+      <button type="submit" class="btn primary big">Spara</button>
+    </div></form>`);
+  const sh=$('#sheet');
+  sh.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeModal);
+  const del=sh.querySelector('[data-del]');
+  if(del) del.onclick=()=>{ if(confirm('Ta bort skridskan och dess historik?')){ delete db.skates[uid]; db.queue=db.queue.filter(q=>q.uid!==uid); db.sharpenings=db.sharpenings.filter(h=>h.uid!==uid); save(); closeModal(); render(); toast('Borttagen'); } };
+  $('#frm').onsubmit = async e=>{
+    e.preventDefault();
+    const fd=new FormData(e.target); const v=k=>(fd.get(k)||'').toString().trim();
+    const rec = {uid, name:v('name'), nr:v('nr'), team:v('team'), hollow:v('hollow').replace(',','.'), profile:v('profile'), note:v('note'), createdAt:s.createdAt||Date.now()};
+    db.skates[uid]=rec;
+    if(fd.get('queue')) addToQueue(uid);
+    save();
+    if(fd.get('write')) { await writeTag(rec); }
+    else { closeModal(); toast(isNew?'Skridskan registrerad':'Ändringar sparade'); }
+    lastFlash=uid; render();
+  };
+  setTimeout(()=>{ const n=sh.querySelector('input[name=name]'); if(n && isNew) n.focus(); }, 50);
+}
+
+/* ---------- Simulate (test without tags) ---------- */
+function openSimulate(){
+  const list=Object.values(db.skates).sort((a,b)=>(a.name||'').localeCompare(b.name||'','sv'));
+  showModal(`
+    <div class="sheet-h"><div><h2>Testa utan tagg</h2><div class="sub">Låtsas blippa en skridsko. Det fungerar precis som en riktig blipp.</div></div><button class="x" data-close aria-label="Stäng">×</button></div>
+    <div class="sheet-b">
+      <button class="btn primary big" data-new style="margin-bottom:16px">+ Blippa en ny, okänd tagg</button>
+      ${list.length?`<div class="pick">${list.map(s=>`<button data-uid="${esc(s.uid)}"><b>${esc(s.name||'Okänd')} ${s.nr?'#'+esc(s.nr):''}</b><span>${esc(s.team||'')} · ${s.hollow?esc(s.hollow)+' mm':'–'}${inQueue(s.uid)?' · i kön':''}</span></button>`).join('')}</div>`:'<div class="sub">Inga skridskor registrerade ännu. Ladda demodata under Inställningar om du vill ha något att testa med.</div>'}
+    </div>`);
+  const sh=$('#sheet');
+  sh.querySelector('[data-close]').onclick=closeModal;
+  sh.querySelector('[data-new]').onclick=()=>{ closeModal(); handleBlip('TEST-'+Math.random().toString(16).slice(2,8).toUpperCase(), null); };
+  sh.querySelectorAll('[data-uid]').forEach(b=>b.onclick=()=>{ closeModal(); handleBlip(b.dataset.uid, null); });
+}
+
+/* ---------- Blip handling ---------- */
+let lastBlip={uid:null, t:0};
+function handleBlip(uid, tagData){
+  if(!uid){ toast('Kunde inte läsa taggens ID – försök igen', true); return; }
+  const now=Date.now();
+  if(lastBlip.uid===uid && now-lastBlip.t<1500) return;
+  lastBlip={uid, t:now};
+  if(formOpen){ toast('Spara eller avbryt formuläret först', true); return; }
+  let s=db.skates[uid];
+  if(!s && tagData){
+    s = db.skates[uid] = {...tagData, uid, note:'', createdAt:now};
+    save(); toast('Ny skridsko inläst från taggen');
+  }
+  if(!s){ closeModal(); openForm(uid); return; }
+  if(!inQueue(uid)){
+    addToQueue(uid); closeModal();
+    view='queue'; lastFlash=uid; render();
+    toast(`${s.name||'Skridskan'} lagd i kön`);
+    vibrate(60);
+  } else {
+    openCard(uid); vibrate([40,60,40]);
+  }
+}
+function vibrate(p){ try{ navigator.vibrate && navigator.vibrate(p); }catch(e){} }
+
+/* ---------- Tag encoding ---------- */
+function clean(s,n){ return String(s||'').replace(/\|/g,'/').slice(0,n); }
+function encodeTag(s){ return ['1',clean(s.name,22),clean(s.nr,4),clean(s.team,14),clean(s.hollow,5),clean(s.profile,12)].join('|'); }
+function decodeTag(str){
+  const p=str.split('|'); if(p[0]!=='1') return null;
+  return {name:p[1]||'', nr:p[2]||'', team:p[3]||'', hollow:p[4]||'', profile:p[5]||''};
+}
+
+/* ---------- Web NFC ---------- */
+let ndef=null, writing=false;
+function setNfc(state, extra){
+  const b=$('#nfcBtn'); b.classList.remove('on','off');
+  if(state==='on'){ b.classList.add('on'); $('#nfcTxt').textContent='NFC på – blippa'; }
+  else if(state==='off'){ b.classList.add('off'); $('#nfcTxt').textContent='Tryck för att starta NFC'; }
+  else { $('#nfcTxt').textContent='NFC saknas i webbläsaren'; }
+  b.title = extra||'';
+}
+async function startNfc(){
+  if(!('NDEFReader' in window)){ setNfc('none'); toast('Den här webbläsaren kan inte läsa NFC. Använd Chrome på plattan – du kan testa med "Testa utan tagg".', true); return; }
+  try{
+    const r=new NDEFReader();
+    await r.scan();
+    r.onreading = ev=>{
+      if(writing) return;
+      let data=null;
+      try{
+        for(const rec of ev.message.records){
+          if(rec.recordType==='mime' && rec.mediaType===TAG_MIME) data=decodeTag(new TextDecoder().decode(rec.data));
+        }
+      }catch(e){}
+      handleBlip((ev.serialNumber||'').toUpperCase(), data);
+    };
+    r.onreadingerror = ()=>{ if(!writing) toast('Kunde inte läsa taggen – håll den stilla mot skärmen', true); };
+    ndef=r; setNfc('on');
+  }catch(e){
+    setNfc('off', e.message);
+    toast(e.name==='NotAllowedError'?'NFC nekades. Tillåt NFC för sidan i Chrome och se att NFC är på i plattan.':'Kunde inte starta NFC: '+e.message, true);
+  }
+}
+$('#nfcBtn').onclick=()=>{ if(!ndef) startNfc(); else toast('NFC är igång. Blippa en skridsko mot plattans framsida.'); };
+if('NDEFReader' in window){
+  setNfc('off');
+  if(navigator.permissions){ navigator.permissions.query({name:'nfc'}).then(p=>{ if(p.state==='granted') startNfc(); }).catch(()=>{}); }
+} else setNfc('none');
+
+async function writeTag(s){
+  if(!ndef){ closeModal(); toast('NFC är inte igång – uppgifterna sparades bara i plattan', true); return; }
+  showModal(`<div class="sheet-b write-box"><div class="pulse">${NFC_ICON}</div><h2 style="font-family:var(--cond);font-size:34px;margin:0 0 8px">Håll skridskon mot plattan</h2><div class="sub">Skriver ${esc(s.name)} till taggen…</div><div style="margin-top:22px"><button class="btn" data-cancel>Hoppa över</button></div></div>`);
+  formOpen=false;
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(), 20000);
+  $('#sheet').querySelector('[data-cancel]').onclick=()=>ctrl.abort();
+  writing=true;
+  try{
+    await ndef.write({records:[{recordType:'mime', mediaType:TAG_MIME, data:new TextEncoder().encode(encodeTag(s))}]}, {signal:ctrl.signal});
+    closeModal(); toast('Sparat på taggen ✓'); vibrate(80);
+  }catch(e){
+    closeModal();
+    toast(e.name==='AbortError'?'Skrevs inte till taggen – sparat i plattan':'Kunde inte skriva till taggen: '+e.message, true);
+  }finally{
+    clearTimeout(timer);
+    setTimeout(()=>{ writing=false; lastBlip={uid:s.uid,t:Date.now()}; }, 1200);
+  }
+}
+
+/* ---------- Skates list ---------- */
+function renderSkates(){
+  const f=skateFilter.toLowerCase();
+  const list=Object.values(db.skates).filter(s=>!f || [s.name,s.nr,s.team,s.hollow,s.profile].join(' ').toLowerCase().includes(f))
+    .sort((a,b)=>(a.team||'').localeCompare(b.team||'','sv') || (parseInt(a.nr)||999)-(parseInt(b.nr)||999));
+  $('#view').innerHTML = `
+    <div class="head"><div><h1>Skridskor</h1><div class="sub">${Object.keys(db.skates).length} registrerade par</div></div>
+      <div class="tools"><input class="search" id="sf" placeholder="Sök namn, nummer, lag…" value="${esc(skateFilter)}"><button class="btn" id="manual">+ Utan tagg</button></div></div>
+    <div class="panel">${list.length?`<div class="qrow qhead"><div>Nr</div><div>Spelare</div><div>Skål</div><div>Profil</div><div class="act">Senast slipad</div></div>`+list.map(s=>{
+      const l=lastSharp(s.uid);
+      return `<div class="qrow item" data-uid="${esc(s.uid)}"><div class="nr">${esc(s.nr||'–')}</div><div class="who"><b>${esc(s.name||'Okänd')}</b><span>${esc(s.team||'')}${inQueue(s.uid)?' · <span class="tag q">I kön</span>':''}</span></div><div class="big-val">${hollowLabel(s.hollow)}</div><div class="big-val" style="font-size:21px">${esc(s.profile||'–')}</div><div class="act sub" style="margin:0">${l?fmtDate(l)+' · '+daysAgo(l):'Aldrig'}</div></div>`;
+    }).join(''):`<div class="empty"><b>${f?'Inga träffar':'Inga skridskor än'}</b>${f?'':'Blippa en ny tagg för att registrera första paret.'}</div>`}</div>`;
+  const sf=$('#sf'); sf.oninput=()=>{ skateFilter=sf.value; const pos=sf.selectionStart; renderSkates(); const n=$('#sf'); n.focus(); n.setSelectionRange(pos,pos); };
+  $('#manual').onclick=()=>openForm('MAN-'+Date.now().toString(36).toUpperCase());
+  document.querySelectorAll('.qrow.item').forEach(r=>r.onclick=()=>openCard(r.dataset.uid));
+}
+
+/* ---------- History ---------- */
+function renderHistory(){
+  const all=db.sharpenings;
+  const cnt=from=>all.filter(h=>h.ts>=from).length;
+  const from = histRange==='today'?startOfDay(Date.now()):histRange==='week'?startOfWeek():histRange==='month'?startOfMonth():0;
+  const list=all.filter(h=>h.ts>=from).sort((a,b)=>b.ts-a.ts);
+  const byH={}; list.forEach(h=>{ const k=h.hollow||'?'; byH[k]=(byH[k]||0)+1; });
+  const byT={}; list.forEach(h=>{ const k=h.team||'Övrigt'; byT[k]=(byT[k]||0)+1; });
+  const chips=(o,suf)=>Object.keys(o).sort((a,b)=>o[b]-o[a]).map(k=>`<span class="chip">${esc(k==='?'?'Okänd':k)}${suf} <b>${o[k]}</b></span>`).join('');
+  $('#view').innerHTML = `
+    <div class="head"><div><h1>Historik</h1><div class="sub">Alla slipningar som gjorts på stationen</div></div>
+      <div class="seg">${[['today','Idag'],['week','Veckan'],['month','Månaden'],['all','Allt']].map(([k,l])=>`<button data-r="${k}" class="${histRange===k?'on':''}">${l}</button>`).join('')}</div></div>
+    <div class="stats">
+      <div class="stat"><div class="l">Idag</div><div class="v">${cnt(startOfDay(Date.now()))}</div></div>
+      <div class="stat"><div class="l">Denna vecka</div><div class="v">${cnt(startOfWeek())}</div></div>
+      <div class="stat"><div class="l">Denna månad</div><div class="v">${cnt(startOfMonth())}</div></div>
+      <div class="stat"><div class="l">Totalt</div><div class="v">${all.length}</div></div>
+    </div>
+    ${list.length?`<div class="chips">${chips(byH,' mm')}</div><div class="chips">${chips(byT,'')}</div>`:''}
+    <div class="panel">${list.length?list.slice(0,300).map(h=>`<div class="hrow"><div class="t">${fmtDT(h.ts)}</div><div class="who"><b style="font-size:17px">${esc(h.name||'Okänd')}</b><span>${esc(h.team||'')}</span></div><div class="big-val" style="font-size:20px">${hollowLabel(h.hollow)}</div><div class="p">${esc(h.profile||'–')}</div></div>`).join(''):'<div class="empty"><b>Inga slipningar</b>under vald period.</div>'}</div>`;
+  document.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{ histRange=b.dataset.r; render(); });
+}
+
+/* ---------- Settings ---------- */
+function renderSettings(){
+  const nfcState = !('NDEFReader' in window) ? 'Den här webbläsaren saknar stöd för NFC (Web NFC). Använd Chrome på Android-plattan.' : ndef ? 'NFC är igång.' : 'NFC är inte startad – tryck på knappen uppe till höger.';
+  $('#view').innerHTML = `
+    <div class="head"><div><h1>Inställningar</h1><div class="sub">Version ${APP_VERSION} · all data sparas lokalt i plattan</div></div></div>
+    <div class="grid2">
+      <div class="box"><h2>Station</h2><p>Namnet visas uppe i vänstra hörnet.</p>
+        <div class="row"><input class="search" id="stn" value="${esc(db.settings.station)}" maxlength="30" style="max-width:none"><button class="btn primary" id="stnSave">Spara</button></div></div>
+      <div class="box"><h2>NFC</h2><p>${nfcState}</p>
+        <div class="row"><button class="btn" id="nfcStart">Starta NFC</button><button class="btn" id="sim2">Testa utan tagg</button></div></div>
+      <div class="box"><h2>Säkerhetskopia</h2><p>Spara all data som en fil, till exempel innan en ny version eller ett plattbyte. Läs in filen för att återställa.</p>
+        <div class="row"><button class="btn primary" id="exp">Exportera</button><button class="btn" id="imp">Importera…</button><input type="file" id="impFile" accept="application/json,.json" hidden></div></div>
+      <div class="box"><h2>Demo</h2><p>Fyll stationen med påhittade spelare och slipningar för att visa upp den eller testa. Demodata ersätter det som finns.</p>
+        <div class="row"><button class="btn" id="demo">Ladda demodata</button><button class="btn danger" id="wipe">Rensa allt</button></div></div>
+    </div>
+    <div class="sub" style="margin-top:20px">${Object.keys(db.skates).length} skridskor · ${db.queue.length} i kön · ${db.sharpenings.length} slipningar</div>`;
+  $('#stnSave').onclick=()=>{ db.settings.station=$('#stn').value.trim(); save(); render(); toast('Sparat'); };
+  $('#nfcStart').onclick=startNfc;
+  $('#sim2').onclick=openSimulate;
+  $('#exp').onclick=exportData;
+  $('#imp').onclick=()=>$('#impFile').click();
+  $('#impFile').onchange=e=>importData(e.target.files[0]);
+  $('#demo').onclick=()=>{ if(confirm('Ersätta all data med demodata?')){ loadDemo(); render(); toast('Demodata inläst'); } };
+  $('#wipe').onclick=()=>{ if(prompt('Skriv RENSA för att radera all data på stationen')==='RENSA'){ db=emptyDb(); save(); render(); toast('All data raderad'); } };
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify({app:'slipstation', version:APP_VERSION, exportedAt:new Date().toISOString(), data:db},null,1)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='slipstation-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+function importData(file){
+  if(!file) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const j=JSON.parse(r.result); const d=j.data||j;
+      if(typeof d.skates!=='object' || !Array.isArray(d.queue) || !Array.isArray(d.sharpenings)) throw new Error('Fel format');
+      if(!confirm(`Ersätta nuvarande data med säkerhetskopian (${Object.keys(d.skates).length} skridskor, ${d.sharpenings.length} slipningar)?`)) return;
+      db={...emptyDb(), ...d}; save(); render(); toast('Säkerhetskopian inläst');
+    }catch(e){ toast('Kunde inte läsa filen: '+e.message, true); }
+  };
+  r.readAsText(file);
+}
+function loadDemo(){
+  const people=[['Alva Lind','14','U16','11','Quad'],['Elias Berg','7','U16','12','Quad'],['Noah Ek','22','U16','12','Elite'],['Vera Holm','3','U16','13','Standard'],
+    ['Liam Sund','91','J18','13','Zuperior'],['Ines Falk','5','J18','15','Quad'],['Otto Ström','30','J18','15','Målvakt'],['Maja Nord','18','U14','10','Fabrik'],
+    ['Leo Ås','9','U14','11','Standard'],['Domare Karlsson','','Domare','15','Standard'],['Tränare Wik','','Tränare','16','Fabrik']];
+  const n=emptyDb(); n.settings=db.settings; const now=Date.now();
+  people.forEach((p,i)=>{ const uid='DEMO-'+String(i+1).padStart(2,'0'); n.skates[uid]={uid,name:p[0],nr:p[1],team:p[2],hollow:p[3],profile:p[4],note:i===4?'Vill ha extra skarpt inför match':'',createdAt:now-30*864e5}; });
+  const uids=Object.keys(n.skates);
+  for(let d=1; d<28; d++){ uids.forEach((u,i)=>{ if((i*7+d*3)%11===0){ const s=n.skates[u]; n.sharpenings.push({id:'d'+d+'-'+i,uid:u,ts:now-d*864e5-((i*37)%300)*6e4,hollow:s.hollow,profile:s.profile,name:s.name,team:s.team}); } }); }
+  [0,1,4,5,7].forEach((i,k)=>n.queue.push({uid:uids[i], addedAt:now-(40-k*7)*6e4}));
+  db=n; save();
+}
+
+/* ---------- Modal ---------- */
+function showModal(html){ $('#sheet').innerHTML=html; $('#modal').classList.remove('hidden'); }
+function closeModal(){ $('#modal').classList.add('hidden'); $('#sheet').innerHTML=''; formOpen=false; }
+$('#modal').addEventListener('click', e=>{ if(e.target.id==='modal' && !writing) closeModal(); });
+
+/* ---------- Offline ---------- */
+if('serviceWorker' in navigator && location.protocol==='https:'){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+
+render();
+</script>
+</body>
+</html>
